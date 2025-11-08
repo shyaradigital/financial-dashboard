@@ -410,8 +410,8 @@ const InvestmentTracker: React.FC = () => {
                 value={formData.current_valuation} 
                 onChange={(e) => setFormData({ ...formData, current_valuation: e.target.value })}
                 placeholder="Auto-calculated if enabled"
-                readOnly={autoCalculateEnabled && supportsAutoCalculation(formData.investment_type) && formData.amount_invested && formData.date_of_entry}
-                style={autoCalculateEnabled && supportsAutoCalculation(formData.investment_type) && formData.amount_invested && formData.date_of_entry ? {backgroundColor: '#2a2a2a', cursor: 'not-allowed'} : {}}
+                readOnly={!!(autoCalculateEnabled && supportsAutoCalculation(formData.investment_type) && formData.amount_invested && formData.date_of_entry)}
+                style={!!(autoCalculateEnabled && supportsAutoCalculation(formData.investment_type) && formData.amount_invested && formData.date_of_entry) ? {backgroundColor: '#2a2a2a', cursor: 'not-allowed'} : {}}
               />
             </div>
           </div>
