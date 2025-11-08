@@ -68,6 +68,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportData: () => ipcRenderer.invoke('export-data'),
   importData: (data: any) => ipcRenderer.invoke('import-data', data),
   wipeAllData: () => ipcRenderer.invoke('wipe-all-data'),
+  resetAllData: () => ipcRenderer.invoke('reset-all-data'),
 });
 
 

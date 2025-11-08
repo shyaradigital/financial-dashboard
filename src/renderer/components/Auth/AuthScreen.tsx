@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import './AuthScreen.css';
 
 interface AuthScreenProps {
@@ -54,6 +54,37 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will permanently delete ALL your financial data and reset the application to a fresh state.\n\n' +
+      'This action CANNOT be undone. Are you absolutely sure?'
+    );
+
+    if (!confirmed) return;
+
+    const doubleConfirm = window.confirm(
+      'This is your last chance. All data will be permanently deleted.\n\n' +
+      'Click OK to confirm, or Cancel to abort.'
+    );
+
+    if (!doubleConfirm) return;
+
+    try {
+      setLoading(true);
+      const success = await window.electronAPI.resetAllData();
+      if (success) {
+        alert('All data has been reset. The application will reload.');
+        window.location.reload();
+      } else {
+        setError('Failed to reset data. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred while resetting data.');
     } finally {
       setLoading(false);
     }
@@ -127,6 +158,56 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
             </div>
           )}
         </form>
+
+        {!isSetup && (
+          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={loading}
+              className="reset-button"
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                fontSize: '14px',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                opacity: loading ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.borderColor = 'var(--danger)';
+                  e.currentTarget.style.color = 'var(--danger)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }
+              }}
+            >
+              <RotateCcw size={16} />
+              Reset All Data
+            </button>
+            <p style={{ 
+              fontSize: '12px', 
+              color: 'var(--text-muted)', 
+              textAlign: 'center', 
+              marginTop: '8px' 
+            }}>
+              Start fresh by deleting all data
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

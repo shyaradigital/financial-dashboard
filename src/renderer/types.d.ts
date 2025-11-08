@@ -65,6 +65,7 @@ export interface ElectronAPI {
   exportData: () => Promise<any>;
   importData: (data: any) => Promise<boolean>;
   wipeAllData: () => Promise<boolean>;
+  resetAllData: () => Promise<boolean>;
 }
 
 declare global {

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { DatabaseService } from './database/DatabaseService';
 import { EncryptionService } from './services/EncryptionService';
 
@@ -356,5 +357,32 @@ ipcMain.handle('wipe-all-data', async () => {
     isLocked = true;
   }
   return result;
+});
+
+// Reset all data - deletes the data file completely (works without authentication)
+ipcMain.handle('reset-all-data', async () => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const dbPath = path.join(userDataPath, 'financial-data.db');
+    const dataPath = dbPath.replace('.db', '.json');
+    
+    // Close existing database service if open
+    if (databaseService) {
+      databaseService.close();
+      databaseService = null;
+    }
+    
+    // Delete the data file
+    if (fs.existsSync(dataPath)) {
+      fs.unlinkSync(dataPath);
+      console.log('Data file deleted:', dataPath);
+    }
+    
+    isLocked = true;
+    return true;
+  } catch (error: any) {
+    console.error('Error resetting data:', error);
+    return false;
+  }
 });
 

@@ -906,6 +906,21 @@ export class DatabaseService {
     }
   }
 
+  // Delete the data file completely (for complete reset)
+  deleteDataFile(): boolean {
+    try {
+      if (fs.existsSync(this.dataPath)) {
+        fs.unlinkSync(this.dataPath);
+        console.log('Data file deleted:', this.dataPath);
+        return true;
+      }
+      return true; // File doesn't exist, consider it successful
+    } catch (error) {
+      console.error('Error deleting data file:', error);
+      return false;
+    }
+  }
+
   close() {
     // JSON storage doesn't need explicit closing
     this.save();
