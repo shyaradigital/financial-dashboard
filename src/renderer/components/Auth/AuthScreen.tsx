@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { Lock, Eye, EyeOff, RotateCcw } from 'lucide-react';
-import { confirmWithFocusRestore, alertWithFocusRestore, ensureAllInputsClickable, restoreInputFocus } from '../../utils/focusUtils';
+import ConfirmDialog from '../Common/ConfirmDialog';
+import AlertDialog from '../Common/AlertDialog';
+import { ensureAllInputsClickable, restoreInputFocus } from '../../utils/focusUtils';
 import './AuthScreen.css';
 
 interface AuthScreenProps {
@@ -14,6 +16,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showResetDoubleConfirm, setShowResetDoubleConfirm] = useState(false);
+  const [showResetAlert, setShowResetAlert] = useState(false);
   const { setAuthenticated, setLocked } = useAppStore();
 
   // Ensure inputs are always focusable and clickable
@@ -86,33 +91,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
     }
   };
 
-  const handleReset = async () => {
-    const confirmed = confirmWithFocusRestore(
-      '⚠️ WARNING: This will permanently delete ALL your financial data and reset the application to a fresh state.\n\n' +
-      'This action CANNOT be undone. Are you absolutely sure?',
-      'password'
-    );
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
 
-    if (!confirmed) {
-      return;
-    }
+  const handleResetConfirm = () => {
+    setShowResetConfirm(false);
+    setTimeout(() => {
+      setShowResetDoubleConfirm(true);
+      ensureAllInputsClickable();
+    }, 100);
+  };
 
-    const doubleConfirm = confirmWithFocusRestore(
-      'This is your last chance. All data will be permanently deleted.\n\n' +
-      'Click OK to confirm, or Cancel to abort.',
-      'password'
-    );
-
-    if (!doubleConfirm) {
-      return;
-    }
-
+  const handleResetDoubleConfirm = async () => {
+    setShowResetDoubleConfirm(false);
+    
     try {
       setLoading(true);
       const success = await window.electronAPI.resetAllData();
       if (success) {
-        alertWithFocusRestore('All data has been reset. The application will reload.', 'password');
-        window.location.reload();
+        setLoading(false);
+        setShowResetAlert(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         setError('Failed to reset data. Please try again.');
         setLoading(false);
@@ -125,6 +127,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
       ensureAllInputsClickable();
       restoreInputFocus('password');
     }
+  };
+
+  const handleCloseResetDialogs = () => {
+    setShowResetConfirm(false);
+    setShowResetDoubleConfirm(false);
+    setShowResetAlert(false);
+    ensureAllInputsClickable();
+    restoreInputFocus('password');
   };
 
   return (
@@ -212,7 +222,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
           <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-color)' }}>
             <button
               type="button"
-              onClick={handleReset}
+              onClick={handleResetClick}
               disabled={loading}
               className="reset-button"
               style={{
@@ -257,6 +267,41 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
             </p>
           </div>
         )}
+
+        {/* Custom dialogs instead of window.confirm/alert */}
+        <ConfirmDialog
+          isOpen={showResetConfirm}
+          onClose={handleCloseResetDialogs}
+          onConfirm={handleResetConfirm}
+          title="Reset All Data"
+          message="⚠️ WARNING: This will permanently delete ALL your financial data and reset the application to a fresh state.\n\nThis action CANNOT be undone. Are you absolutely sure?"
+          confirmText="Yes, Reset"
+          cancelText="Cancel"
+          variant="danger"
+        />
+
+        <ConfirmDialog
+          isOpen={showResetDoubleConfirm}
+          onClose={handleCloseResetDialogs}
+          onConfirm={handleResetDoubleConfirm}
+          title="Final Confirmation"
+          message="This is your last chance. All data will be permanently deleted.\n\nClick Confirm to proceed, or Cancel to abort."
+          confirmText="Confirm Reset"
+          cancelText="Cancel"
+          variant="danger"
+          loading={loading}
+        />
+
+        <AlertDialog
+          isOpen={showResetAlert}
+          onClose={() => {
+            setShowResetAlert(false);
+            window.location.reload();
+          }}
+          title="Reset Complete"
+          message="All data has been reset. The application will reload."
+          variant="success"
+        />
       </div>
     </div>
   );

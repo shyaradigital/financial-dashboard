@@ -54,7 +54,27 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             (htmlEl as HTMLInputElement).style.cursor = 'text';
           }
         });
+        
+        // Force focus restoration - try multiple times
+        if (previousActiveElement.current) {
+          previousActiveElement.current.focus();
+          previousActiveElement.current.click();
+        } else {
+          // If no previous element, focus first available input
+          const firstInput = document.querySelector('input:not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])') as HTMLElement;
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.click();
+          }
+        }
       }, 150);
+      
+      // Additional focus restoration attempt
+      setTimeout(() => {
+        if (previousActiveElement.current) {
+          previousActiveElement.current.focus();
+        }
+      }, 300);
     }
 
     return () => {
