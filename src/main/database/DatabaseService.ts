@@ -589,6 +589,8 @@ export class DatabaseService {
         date_of_entry: investmentData.date_of_entry,
         current_valuation: investmentData.current_valuation || investmentData.amount_invested,
         expected_roi: investmentData.expected_roi || null,
+        interest_rate: investmentData.interest_rate || null,
+        maturity_date: investmentData.maturity_date || null,
         tax_flag: investmentData.tax_flag || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -625,6 +627,8 @@ export class DatabaseService {
         date_of_entry: investmentData.date_of_entry,
         current_valuation: investmentData.current_valuation,
         expected_roi: investmentData.expected_roi || null,
+        interest_rate: investmentData.interest_rate || null,
+        maturity_date: investmentData.maturity_date || null,
         tax_flag: investmentData.tax_flag || null,
         updated_at: new Date().toISOString()
       };
