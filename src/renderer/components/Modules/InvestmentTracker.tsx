@@ -21,25 +21,54 @@ const InvestmentTracker: React.FC = () => {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    const data = await window.electronAPI.getInvestments();
-    setInvestments(data);
+    try {
+      const data = await window.electronAPI.getInvestments();
+      // Ensure all numeric fields are properly parsed
+      const parsedData = data.map((inv: any) => ({
+        ...inv,
+        amount_invested: typeof inv.amount_invested === 'string' ? parseFloat(inv.amount_invested) : (inv.amount_invested || 0),
+        current_valuation: inv.current_valuation ? (typeof inv.current_valuation === 'string' ? parseFloat(inv.current_valuation) : inv.current_valuation) : null,
+        expected_roi: inv.expected_roi ? (typeof inv.expected_roi === 'string' ? parseFloat(inv.expected_roi) : inv.expected_roi) : null
+      }));
+      setInvestments(parsedData);
+    } catch (error) {
+      console.error('Error loading investments:', error);
+      setInvestments([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      ...formData,
-      amount_invested: parseFloat(formData.amount_invested),
-      current_valuation: formData.current_valuation ? parseFloat(formData.current_valuation) : null,
-      expected_roi: formData.expected_roi ? parseFloat(formData.expected_roi) : null
-    };
-    if (editingInvestment) {
-      await window.electronAPI.updateInvestment(editingInvestment.id, data);
-    } else {
-      await window.electronAPI.addInvestment(data);
+    try {
+      const data = {
+        ...formData,
+        amount_invested: parseFloat(formData.amount_invested) || 0,
+        current_valuation: formData.current_valuation ? parseFloat(formData.current_valuation) : null,
+        expected_roi: formData.expected_roi ? parseFloat(formData.expected_roi) : null
+      };
+      
+      if (editingInvestment) {
+        const success = await window.electronAPI.updateInvestment(editingInvestment.id, data);
+        if (!success) {
+          alert('Failed to update investment. Please try again.');
+          return;
+        }
+      } else {
+        const result = await window.electronAPI.addInvestment(data);
+        if (!result) {
+          alert('Failed to add investment. Please try again.');
+          return;
+        }
+      }
+      
+      // Force reload data to ensure calculations are updated
+      await loadData();
+      
+      closeModal();
+    } catch (error) {
+      console.error('Error saving investment:', error);
+      alert('An error occurred while saving the investment.');
     }
-    await loadData();
-    closeModal();
   };
 
   const handleDelete = async (id: number) => {
@@ -62,12 +91,25 @@ const InvestmentTracker: React.FC = () => {
 
   const closeModal = () => { setIsModalOpen(false); setEditingInvestment(null); };
 
-  const totalInvested = investments.reduce((sum, inv) => sum + inv.amount_invested, 0);
-  const totalCurrent = investments.reduce((sum, inv) => sum + (inv.current_valuation || inv.amount_invested), 0);
+  // Calculate totals with proper number handling
+  const totalInvested = investments.reduce((sum, inv) => {
+    const invested = typeof inv.amount_invested === 'number' ? inv.amount_invested : parseFloat(inv.amount_invested) || 0;
+    return sum + invested;
+  }, 0);
+  
+  const totalCurrent = investments.reduce((sum, inv) => {
+    const invested = typeof inv.amount_invested === 'number' ? inv.amount_invested : parseFloat(inv.amount_invested) || 0;
+    const current = inv.current_valuation 
+      ? (typeof inv.current_valuation === 'number' ? inv.current_valuation : parseFloat(inv.current_valuation) || invested)
+      : invested;
+    return sum + current;
+  }, 0);
+  
   const totalGain = totalCurrent - totalInvested;
 
   const typeData = investments.reduce((acc: any, inv) => {
-    acc[inv.investment_type] = (acc[inv.investment_type] || 0) + inv.amount_invested;
+    const invested = typeof inv.amount_invested === 'number' ? inv.amount_invested : parseFloat(inv.amount_invested) || 0;
+    acc[inv.investment_type] = (acc[inv.investment_type] || 0) + invested;
     return acc;
   }, {});
 
@@ -118,14 +160,20 @@ const InvestmentTracker: React.FC = () => {
                 <tr><td colSpan={7} className="no-data-cell">No investments</td></tr>
               ) : (
                 investments.map((inv) => {
-                  const gain = (inv.current_valuation || inv.amount_invested) - inv.amount_invested;
+                  // Ensure values are numbers for calculation
+                  const invested = typeof inv.amount_invested === 'number' ? inv.amount_invested : parseFloat(inv.amount_invested) || 0;
+                  const current = inv.current_valuation 
+                    ? (typeof inv.current_valuation === 'number' ? inv.current_valuation : parseFloat(inv.current_valuation) || invested)
+                    : invested;
+                  const gain = current - invested;
+                  
                   return (
                     <tr key={inv.id}>
                       <td><span className="category-badge">{inv.investment_type}</span></td>
                       <td>{inv.name}</td>
                       <td>{inv.platform || '—'}</td>
-                      <td className="amount-cell">{stealthMode ? maskValue(inv.amount_invested, true) : formatCurrency(inv.amount_invested)}</td>
-                      <td className="amount-cell">{stealthMode ? maskValue(inv.current_valuation || inv.amount_invested, true) : formatCurrency(inv.current_valuation || inv.amount_invested)}</td>
+                      <td className="amount-cell">{stealthMode ? maskValue(invested, true) : formatCurrency(invested)}</td>
+                      <td className="amount-cell">{stealthMode ? maskValue(current, true) : formatCurrency(current)}</td>
                       <td className="amount-cell" style={{color: gain >= 0 ? '#10b981' : '#ef4444'}}>{stealthMode ? maskValue(gain, true) : formatCurrency(gain)}</td>
                       <td>
                         <div className="action-buttons">
