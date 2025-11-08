@@ -84,11 +84,16 @@ ipcMain.on('user-activity', () => {
 });
 
 // Authentication handlers
+// Note: Each device has its own separate data file in the user's app data directory
+// Windows: %APPDATA%\Financial Dashboard\financial-data.json
+// Linux: ~/.config/Financial Dashboard/financial-data.json
+// macOS: ~/Library/Application Support/Financial Dashboard/financial-data.json
+// This ensures each device starts fresh with no shared data
 ipcMain.handle('check-auth-required', async () => {
   try {
-    const userDataPath = app.getPath('userData');
+    const userDataPath = app.getPath('userData'); // Device-specific directory
     const dbPath = path.join(userDataPath, 'financial-data.db');
-    console.log('Database path:', dbPath);
+    console.log('Database path (device-specific):', dbPath);
     const db = new DatabaseService(dbPath);
     await db.initialize();
     const required = db.isAuthRequired();
@@ -97,7 +102,7 @@ ipcMain.handle('check-auth-required', async () => {
   } catch (error: any) {
     console.error('Error checking auth - Database may not be initialized:', error);
     console.error('Error details:', error?.message || 'Unknown error');
-    // Return false to allow app to load without database
+    // Return false to allow app to load without database (fresh install scenario)
     return false;
   }
 });

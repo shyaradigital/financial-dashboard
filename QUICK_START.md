@@ -57,10 +57,21 @@ npm --version
 
 ## 🎯 First Launch
 
+**Note:** Each device starts completely fresh with no data. When you install on a new device, you'll create a new password and start from scratch.
+
 1. **Run the application** (via shortcut or `npm start`)
 2. **Create master password** - ⚠️ Remember this! It cannot be recovered
+   - This is your **first-time setup** on this device
+   - Each device has its own separate database
+   - Data is **not shared** between devices
 3. **Set up profile** (optional, can skip for now)
 4. **Start tracking** your finances!
+
+### 🔄 Multiple Devices
+
+- **Device A** and **Device B** have completely separate data
+- Installing on a new device = fresh start with password creation screen
+- To transfer data between devices, use the **Export/Import** feature in Settings
 
 ## 📦 Building Distribution Packages
 

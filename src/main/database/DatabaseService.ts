@@ -35,22 +35,28 @@ export class DatabaseService {
   async initialize() {
     try {
       console.log('Initializing database at:', this.dataPath);
+      console.log('Note: Each device has its own separate data file - fresh installs start with no data');
       
       // Load existing data or create new
+      // On a fresh device, the file won't exist, so we create a new empty database
       if (fs.existsSync(this.dataPath)) {
+        // Existing device - load data
         const fileContent = fs.readFileSync(this.dataPath, 'utf8');
         this.data = JSON.parse(fileContent);
+        console.log('Loaded existing data from device');
       } else {
+        // Fresh device - create new empty database
         this.data = this.getDefaultData();
         this.seedDefaultData();
         this.save();
+        console.log('Created new database for this device (fresh install)');
       }
       
       console.log('Database initialized successfully');
     } catch (error: any) {
       console.error('Failed to initialize database:', error);
       console.error('Error details:', error?.message || error);
-      // Start with empty data if file is corrupted
+      // Start with empty data if file is corrupted (treat as fresh install)
       this.data = this.getDefaultData();
       this.seedDefaultData();
       this.save();
@@ -158,7 +164,10 @@ export class DatabaseService {
   }
 
   // Auth methods
+  // Returns true if a password exists (existing user), false if no password (new device/setup needed)
   isAuthRequired(): boolean {
+    // If auth array is empty, no password exists - show setup screen (fresh device)
+    // If auth array has entries, password exists - show login screen (existing device)
     return this.data.auth.length > 0;
   }
 

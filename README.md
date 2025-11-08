@@ -2,6 +2,16 @@
 
 A comprehensive, local-first financial dashboard built with Electron, React, and TypeScript. All your financial data stays on your device, encrypted with your master password.
 
+## 🆕 Fresh Start on Every Device
+
+**Each device is completely independent** - when you install the Financial Dashboard on a new device, it will:
+- Start with **no existing data**
+- Show the **password creation screen** (first-time setup)
+- Create a **new, separate database** on that device
+- **Not share data** with other devices (no cloud sync)
+
+This ensures complete privacy and isolation between devices. Your data on Device A will never appear on Device B unless you manually export and import it.
+
 ## 🔐 Key Features
 
 ### Security & Privacy
