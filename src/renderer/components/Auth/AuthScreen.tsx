@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { Lock, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { confirmWithFocusRestore, alertWithFocusRestore, ensureAllInputsClickable, restoreInputFocus } from '../../utils/focusUtils';
 import './AuthScreen.css';
 
 interface AuthScreenProps {
@@ -14,6 +15,32 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { setAuthenticated, setLocked } = useAppStore();
+
+  // Ensure inputs are always focusable and clickable
+  React.useEffect(() => {
+    const ensureInputsClickable = () => {
+      const inputs = document.querySelectorAll('.auth-form input');
+      inputs.forEach((input) => {
+        const htmlInput = input as HTMLInputElement;
+        htmlInput.style.pointerEvents = 'auto';
+        htmlInput.style.cursor = 'text';
+        htmlInput.removeAttribute('readonly');
+        if (htmlInput.disabled && !loading) {
+          htmlInput.disabled = false;
+        }
+      });
+    };
+
+    // Run immediately and after a short delay
+    ensureInputsClickable();
+    const timer = setTimeout(ensureInputsClickable, 100);
+    const timer2 = setTimeout(ensureInputsClickable, 500);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timer2);
+    };
+  }, [loading, isSetup]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,33 +87,43 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
   };
 
   const handleReset = async () => {
-    const confirmed = window.confirm(
+    const confirmed = confirmWithFocusRestore(
       '⚠️ WARNING: This will permanently delete ALL your financial data and reset the application to a fresh state.\n\n' +
-      'This action CANNOT be undone. Are you absolutely sure?'
+      'This action CANNOT be undone. Are you absolutely sure?',
+      'password'
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
-    const doubleConfirm = window.confirm(
+    const doubleConfirm = confirmWithFocusRestore(
       'This is your last chance. All data will be permanently deleted.\n\n' +
-      'Click OK to confirm, or Cancel to abort.'
+      'Click OK to confirm, or Cancel to abort.',
+      'password'
     );
 
-    if (!doubleConfirm) return;
+    if (!doubleConfirm) {
+      return;
+    }
 
     try {
       setLoading(true);
       const success = await window.electronAPI.resetAllData();
       if (success) {
-        alert('All data has been reset. The application will reload.');
+        alertWithFocusRestore('All data has been reset. The application will reload.', 'password');
         window.location.reload();
       } else {
         setError('Failed to reset data. Please try again.');
+        setLoading(false);
+        ensureAllInputsClickable();
+        restoreInputFocus('password');
       }
     } catch (err) {
       setError('An error occurred while resetting data.');
-    } finally {
       setLoading(false);
+      ensureAllInputsClickable();
+      restoreInputFocus('password');
     }
   };
 

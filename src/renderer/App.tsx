@@ -21,18 +21,43 @@ const App: React.FC = () => {
       setLocked(true);
     });
 
-    // Track user activity
-    const handleActivity = () => {
+    // Track user activity (but don't block input interactions)
+    const handleActivity = (e: Event) => {
+      // Don't interfere with input focus
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return;
+      }
+      
       if (isAuthenticated && !isLocked) {
         window.electronAPI.userActivity();
       }
     };
+
+    // Ensure all inputs are always clickable
+    const ensureInputsClickable = () => {
+      const allInputs = document.querySelectorAll('input, textarea, select');
+      allInputs.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        if (!(htmlEl as HTMLInputElement).disabled && !(htmlEl as HTMLInputElement).readOnly) {
+          htmlEl.style.pointerEvents = 'auto';
+          if (htmlEl.tagName === 'INPUT' || htmlEl.tagName === 'TEXTAREA') {
+            (htmlEl as HTMLInputElement).style.cursor = 'text';
+          }
+        }
+      });
+    };
+
+    // Run periodically to ensure inputs stay clickable
+    const interval = setInterval(ensureInputsClickable, 1000);
+    ensureInputsClickable();
 
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('click', handleActivity);

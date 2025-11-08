@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../Common/Card';
 import Button from '../Common/Button';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
+import { confirmWithFocusRestore, alertWithFocusRestore, ensureAllInputsClickable } from '../../utils/focusUtils';
 
 const BackupRestore: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -23,11 +24,13 @@ const BackupRestore: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         
-        alert('Backup created successfully!');
+        alertWithFocusRestore('Backup created successfully!');
+        ensureAllInputsClickable();
       }
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to create backup.');
+      alertWithFocusRestore('Failed to create backup.');
+      ensureAllInputsClickable();
     } finally {
       setLoading(false);
     }
@@ -45,14 +48,17 @@ const BackupRestore: React.FC = () => {
         const text = await file.text();
         const data = JSON.parse(text);
         
-        const confirmed = confirm('This will import data and may overwrite existing information. Continue?');
+        const confirmed = confirmWithFocusRestore('This will import data and may overwrite existing information. Continue?');
         if (confirmed) {
           await window.electronAPI.importData(data);
-          alert('Data imported successfully! Reload the application.');
+          alertWithFocusRestore('Data imported successfully! Reload the application.');
+        } else {
+          ensureAllInputsClickable();
         }
       } catch (error) {
         console.error('Error importing data:', error);
-        alert('Failed to import backup. Make sure the file is valid.');
+        alertWithFocusRestore('Failed to import backup. Make sure the file is valid.');
+        ensureAllInputsClickable();
       } finally {
         setLoading(false);
       }
@@ -62,28 +68,37 @@ const BackupRestore: React.FC = () => {
   };
 
   const handleWipeData = async () => {
-    const confirmed = confirm('⚠️ WARNING: This will permanently delete ALL your financial data. This action CANNOT be undone. Are you absolutely sure?');
+    const confirmed = confirmWithFocusRestore('⚠️ WARNING: This will permanently delete ALL your financial data. This action CANNOT be undone. Are you absolutely sure?');
     
-    if (confirmed) {
-      const doubleConfirm = confirm('This is your last chance. Type YES in the next prompt to confirm.');
-      
-      if (doubleConfirm) {
-        const finalConfirm = prompt('Type YES to confirm deletion of all data:');
-        
-        if (finalConfirm === 'YES') {
-          try {
-            setLoading(true);
-            await window.electronAPI.wipeAllData();
-            alert('All data has been wiped. The application will reload.');
-            window.location.reload();
-          } catch (error) {
-            console.error('Error wiping data:', error);
-            alert('Failed to wipe data.');
-          } finally {
-            setLoading(false);
-          }
-        }
+    if (!confirmed) {
+      ensureAllInputsClickable();
+      return;
+    }
+    
+    const doubleConfirm = confirmWithFocusRestore('This is your last chance. Type YES in the next prompt to confirm.');
+    
+    if (!doubleConfirm) {
+      ensureAllInputsClickable();
+      return;
+    }
+    
+    const finalConfirm = prompt('Type YES to confirm deletion of all data:');
+    
+    if (finalConfirm === 'YES') {
+      try {
+        setLoading(true);
+        await window.electronAPI.wipeAllData();
+        alertWithFocusRestore('All data has been wiped. The application will reload.');
+        window.location.reload();
+      } catch (error) {
+        console.error('Error wiping data:', error);
+        alertWithFocusRestore('Failed to wipe data.');
+        ensureAllInputsClickable();
+      } finally {
+        setLoading(false);
       }
+    } else {
+      ensureAllInputsClickable();
     }
   };
 

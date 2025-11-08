@@ -78,6 +78,8 @@ input, textarea, select {
   border-radius: 6px;
   outline: none;
   transition: all 0.2s ease;
+  pointer-events: auto !important;
+  cursor: text;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -87,6 +89,22 @@ input:focus, textarea:focus, select:focus {
 
 input::placeholder, textarea::placeholder {
   color: var(--text-muted);
+}
+
+/* Ensure inputs are never blocked */
+input:not([disabled]):not([readonly]),
+textarea:not([disabled]):not([readonly]),
+select:not([disabled]) {
+  pointer-events: auto !important;
+  cursor: text !important;
+}
+
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+button:not([disabled]) {
+  cursor: pointer !important;
+  pointer-events: auto !important;
 }
 
 /* Card styles */
