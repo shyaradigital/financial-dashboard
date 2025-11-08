@@ -6,7 +6,7 @@ import Modal from '../Common/Modal';
 import { Plus, Edit2, Trash2, Calculator } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { formatCurrency, maskValue } from '../../utils/exportUtils';
-import { calculateInvestmentCurrentValue, supportsAutoCalculation, getCalculationDescription } from '../../utils/investmentCalculations';
+import { calculateInvestmentCurrentValue, calculateInvestmentMaturityValue, supportsAutoCalculation, getCalculationDescription } from '../../utils/investmentCalculations';
 
 const InvestmentTracker: React.FC = () => {
   const { stealthMode } = useAppStore();
@@ -25,15 +25,37 @@ const InvestmentTracker: React.FC = () => {
   const loadData = async () => {
     try {
       const data = await window.electronAPI.getInvestments();
-      // Ensure all numeric fields are properly parsed
-      const parsedData = data.map((inv: any) => ({
-        ...inv,
-        amount_invested: typeof inv.amount_invested === 'string' ? parseFloat(inv.amount_invested) : (inv.amount_invested || 0),
-        current_valuation: inv.current_valuation ? (typeof inv.current_valuation === 'string' ? parseFloat(inv.current_valuation) : inv.current_valuation) : null,
-        expected_roi: inv.expected_roi ? (typeof inv.expected_roi === 'string' ? parseFloat(inv.expected_roi) : inv.expected_roi) : null,
-        interest_rate: inv.interest_rate ? (typeof inv.interest_rate === 'string' ? parseFloat(inv.interest_rate) : inv.interest_rate) : null,
-        maturity_date: inv.maturity_date || null
-      }));
+      // Ensure all numeric fields are properly parsed and recalculate current values based on today's date
+      const parsedData = data.map((inv: any) => {
+        const amountInvested = typeof inv.amount_invested === 'string' ? parseFloat(inv.amount_invested) : (inv.amount_invested || 0);
+        const expectedRoi = inv.expected_roi ? (typeof inv.expected_roi === 'string' ? parseFloat(inv.expected_roi) : inv.expected_roi) : null;
+        const interestRate = inv.interest_rate ? (typeof inv.interest_rate === 'string' ? parseFloat(inv.interest_rate) : inv.interest_rate) : null;
+        const maturityDate = inv.maturity_date || null;
+        
+        // Recalculate current value based on today's date if auto-calculation is supported
+        let currentValuation = inv.current_valuation ? (typeof inv.current_valuation === 'string' ? parseFloat(inv.current_valuation) : inv.current_valuation) : null;
+        
+        if (supportsAutoCalculation(inv.investment_type) && inv.date_of_entry && amountInvested > 0) {
+          // Always recalculate current value using today's date
+          currentValuation = calculateInvestmentCurrentValue({
+            investment_type: inv.investment_type,
+            amount_invested: amountInvested,
+            date_of_entry: inv.date_of_entry,
+            expected_roi: expectedRoi,
+            interest_rate: interestRate,
+            maturity_date: maturityDate
+          });
+        }
+        
+        return {
+          ...inv,
+          amount_invested: amountInvested,
+          current_valuation: currentValuation,
+          expected_roi: expectedRoi,
+          interest_rate: interestRate,
+          maturity_date: maturityDate
+        };
+      });
       setInvestments(parsedData);
     } catch (error) {
       console.error('Error loading investments:', error);
@@ -228,14 +250,17 @@ const InvestmentTracker: React.FC = () => {
       </div>
 
       <Card title="Investments">
+        <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <strong>Note:</strong> Current Value is calculated as of today's date. Maturity Value shows the projected value at maturity date (if provided).
+        </div>
         <div className="table-container">
           <table className="data-table">
             <thead>
-              <tr><th>Type</th><th>Name</th><th>Platform</th><th>Invested</th><th>Current Value</th><th>Gain/Loss</th><th>Actions</th></tr>
+              <tr><th>Type</th><th>Name</th><th>Platform</th><th>Invested</th><th>Current Value<br/><span style={{fontSize: '10px', fontWeight: 'normal'}}>(Today)</span></th><th>Maturity Value<br/><span style={{fontSize: '10px', fontWeight: 'normal'}}>(At Maturity)</span></th><th>Gain/Loss</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {investments.length === 0 ? (
-                <tr><td colSpan={7} className="no-data-cell">No investments</td></tr>
+                <tr><td colSpan={8} className="no-data-cell">No investments</td></tr>
               ) : (
                 investments.map((inv) => {
                   // Ensure values are numbers for calculation
@@ -243,6 +268,18 @@ const InvestmentTracker: React.FC = () => {
                   const current = inv.current_valuation 
                     ? (typeof inv.current_valuation === 'number' ? inv.current_valuation : parseFloat(inv.current_valuation) || invested)
                     : invested;
+                  
+                  // Calculate maturity value if maturity date is provided
+                  const maturityValue = inv.maturity_date ? calculateInvestmentMaturityValue({
+                    investment_type: inv.investment_type,
+                    amount_invested: invested,
+                    date_of_entry: inv.date_of_entry,
+                    expected_roi: inv.expected_roi,
+                    interest_rate: inv.interest_rate,
+                    maturity_date: inv.maturity_date
+                  }) : null;
+                  
+                  // Gain/Loss is calculated from current value (today's value)
                   const gain = current - invested;
                   
                   return (
@@ -252,6 +289,12 @@ const InvestmentTracker: React.FC = () => {
                       <td>{inv.platform || '—'}</td>
                       <td className="amount-cell">{stealthMode ? maskValue(invested, true) : formatCurrency(invested)}</td>
                       <td className="amount-cell">{stealthMode ? maskValue(current, true) : formatCurrency(current)}</td>
+                      <td className="amount-cell">
+                        {maturityValue !== null 
+                          ? (stealthMode ? maskValue(maturityValue, true) : formatCurrency(maturityValue))
+                          : '—'
+                        }
+                      </td>
                       <td className="amount-cell" style={{color: gain >= 0 ? '#10b981' : '#ef4444'}}>{stealthMode ? maskValue(gain, true) : formatCurrency(gain)}</td>
                       <td>
                         <div className="action-buttons">

@@ -118,7 +118,7 @@ function getCompoundingFrequency(investmentType: string): number {
 }
 
 /**
- * Main function to calculate current value of an investment
+ * Main function to calculate current value of an investment (as of today's date)
  */
 export function calculateInvestmentCurrentValue(params: InvestmentCalculationParams): number {
   const {
@@ -126,26 +126,20 @@ export function calculateInvestmentCurrentValue(params: InvestmentCalculationPar
     amount_invested,
     date_of_entry,
     expected_roi,
-    interest_rate,
-    maturity_date
+    interest_rate
   } = params;
 
   if (!amount_invested || amount_invested <= 0) {
     return 0;
   }
 
+  // Always calculate based on today's date for current value
   const currentDate = new Date().toISOString().split('T')[0];
   const years = getYearsBetweenDates(date_of_entry, currentDate);
-  const months = getMonthsBetweenDates(date_of_entry, currentDate);
-
-  // If maturity date is provided and hasn't reached, calculate up to maturity
-  let calculationYears = years;
-  if (maturity_date) {
-    const maturity = new Date(maturity_date);
-    const today = new Date();
-    if (maturity > today) {
-      calculationYears = getYearsBetweenDates(date_of_entry, maturity_date);
-    }
+  
+  // Don't allow negative time (investment hasn't started yet)
+  if (years < 0) {
+    return amount_invested;
   }
 
   // For Fixed Deposits, PPF, NPS, Bonds - use interest rate
@@ -154,7 +148,7 @@ export function calculateInvestmentCurrentValue(params: InvestmentCalculationPar
     const rate = interest_rate || getDefaultInterestRate(investment_type);
     if (rate > 0) {
       const compoundingFreq = getCompoundingFrequency(investment_type);
-      return calculateCompoundInterest(amount_invested, rate, calculationYears, compoundingFreq);
+      return calculateCompoundInterest(amount_invested, rate, years, compoundingFreq);
     }
   }
 
@@ -162,7 +156,7 @@ export function calculateInvestmentCurrentValue(params: InvestmentCalculationPar
   if (investment_type === 'ULIPs') {
     const rate = interest_rate || getDefaultInterestRate(investment_type);
     if (rate > 0) {
-      return calculateCompoundInterest(amount_invested, rate, calculationYears, 12);
+      return calculateCompoundInterest(amount_invested, rate, years, 12);
     }
   }
 
@@ -170,12 +164,12 @@ export function calculateInvestmentCurrentValue(params: InvestmentCalculationPar
   const equityTypes = ['Mutual Funds', 'Stocks', 'Real Estate', 'Digital Gold'];
   if (equityTypes.includes(investment_type)) {
     if (expected_roi && expected_roi > 0) {
-      return calculateFromROI(amount_invested, expected_roi, calculationYears);
+      return calculateFromROI(amount_invested, expected_roi, years);
     }
     // If no ROI provided, use default rate for the type
     const defaultRate = getDefaultInterestRate(investment_type);
     if (defaultRate > 0) {
-      return calculateFromROI(amount_invested, defaultRate, calculationYears);
+      return calculateFromROI(amount_invested, defaultRate, years);
     }
   }
 
@@ -188,7 +182,77 @@ export function calculateInvestmentCurrentValue(params: InvestmentCalculationPar
 
   // Default: If expected ROI is provided, use it
   if (expected_roi && expected_roi > 0) {
-    return calculateFromROI(amount_invested, expected_roi, calculationYears);
+    return calculateFromROI(amount_invested, expected_roi, years);
+  }
+
+  // If no calculation method available, return invested amount
+  return amount_invested;
+}
+
+/**
+ * Calculate maturity value of an investment (based on maturity date)
+ */
+export function calculateInvestmentMaturityValue(params: InvestmentCalculationParams): number | null {
+  const {
+    investment_type,
+    amount_invested,
+    date_of_entry,
+    expected_roi,
+    interest_rate,
+    maturity_date
+  } = params;
+
+  // If no maturity date provided, return null
+  if (!maturity_date) {
+    return null;
+  }
+
+  if (!amount_invested || amount_invested <= 0) {
+    return 0;
+  }
+
+  // Calculate years from entry date to maturity date
+  const yearsToMaturity = getYearsBetweenDates(date_of_entry, maturity_date);
+  
+  // Don't allow negative time
+  if (yearsToMaturity < 0) {
+    return null; // Maturity date is in the past or invalid
+  }
+
+  // For Fixed Deposits, PPF, NPS, Bonds - use interest rate
+  const fixedIncomeTypes = ['Fixed Deposits', 'PPF', 'NPS', 'Bonds'];
+  if (fixedIncomeTypes.includes(investment_type)) {
+    const rate = interest_rate || getDefaultInterestRate(investment_type);
+    if (rate > 0) {
+      const compoundingFreq = getCompoundingFrequency(investment_type);
+      return calculateCompoundInterest(amount_invested, rate, yearsToMaturity, compoundingFreq);
+    }
+  }
+
+  // For ULIPs - use interest rate with monthly compounding
+  if (investment_type === 'ULIPs') {
+    const rate = interest_rate || getDefaultInterestRate(investment_type);
+    if (rate > 0) {
+      return calculateCompoundInterest(amount_invested, rate, yearsToMaturity, 12);
+    }
+  }
+
+  // For Mutual Funds, Stocks - use Expected ROI if provided
+  const equityTypes = ['Mutual Funds', 'Stocks', 'Real Estate', 'Digital Gold'];
+  if (equityTypes.includes(investment_type)) {
+    if (expected_roi && expected_roi > 0) {
+      return calculateFromROI(amount_invested, expected_roi, yearsToMaturity);
+    }
+    // If no ROI provided, use default rate for the type
+    const defaultRate = getDefaultInterestRate(investment_type);
+    if (defaultRate > 0) {
+      return calculateFromROI(amount_invested, defaultRate, yearsToMaturity);
+    }
+  }
+
+  // Default: If expected ROI is provided, use it
+  if (expected_roi && expected_roi > 0) {
+    return calculateFromROI(amount_invested, expected_roi, yearsToMaturity);
   }
 
   // If no calculation method available, return invested amount
