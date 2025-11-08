@@ -485,10 +485,17 @@ const InvestmentTracker: React.FC = () => {
                 </label>
               </div>
               <div style={{marginLeft: '24px', fontSize: '12px'}}>
-                {getCalculationDescription(
-                  formData.investment_type, 
-                  !!formData.expected_roi, 
-                  !!formData.interest_rate
+                <div style={{marginBottom: '8px'}}>
+                  <strong>Current Value:</strong> Calculated as of today's date. {getCalculationDescription(
+                    formData.investment_type,
+                    !!formData.expected_roi,
+                    !!formData.interest_rate
+                  )}
+                </div>
+                {formData.maturity_date && (
+                  <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(59, 130, 246, 0.3)'}}>
+                    <strong>Maturity Value:</strong> Will be calculated based on maturity date ({formData.maturity_date}) using the same formula.
+                  </div>
                 )}
               </div>
             </div>
