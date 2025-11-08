@@ -11,7 +11,15 @@ const rendererConfig = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            configFile: path.resolve(__dirname, 'tsconfig.json'),
+            transpileOnly: false,
+            onlyCompileBundledFiles: true,
+            projectReferences: false,
+          },
+        },
         exclude: /node_modules/,
       },
       {
@@ -60,7 +68,15 @@ const mainConfig = {
     rules: [
       {
         test: /\.ts$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            configFile: path.resolve(__dirname, 'tsconfig.json'),
+            transpileOnly: false,
+            onlyCompileBundledFiles: true,
+            projectReferences: false,
+          },
+        },
         exclude: /node_modules/,
       },
     ],
@@ -87,7 +103,15 @@ const preloadConfig = {
     rules: [
       {
         test: /\.ts$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            configFile: path.resolve(__dirname, 'tsconfig.json'),
+            transpileOnly: false,
+            onlyCompileBundledFiles: true,
+            projectReferences: false,
+          },
+        },
         exclude: /node_modules/,
       },
     ],
