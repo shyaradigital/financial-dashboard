@@ -1,0 +1,32 @@
+.custom-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.custom-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.custom-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.custom-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-card-body {
+  padding: 20px;
+}
+
+
