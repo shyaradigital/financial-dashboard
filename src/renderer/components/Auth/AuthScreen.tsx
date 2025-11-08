@@ -101,7 +101,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
           <p>{isSetup ? 'Setup Master Password' : 'Enter Master Password'}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" onClick={(e) => e.stopPropagation()}>
           <div className="input-group">
             <label htmlFor="password">
               {isSetup ? 'Create Master Password' : 'Master Password'}
@@ -112,9 +112,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => e.stopPropagation()}
                 placeholder="Enter password"
                 required
                 autoFocus
+                disabled={loading}
+                readOnly={false}
+                autoComplete="current-password"
+                style={{ pointerEvents: 'auto', cursor: 'text' }}
               />
               <button
                 type="button"
@@ -135,8 +141,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ isSetup }) => {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => e.stopPropagation()}
                 placeholder="Confirm password"
                 required
+                disabled={loading}
+                readOnly={false}
+                autoComplete="new-password"
+                style={{ pointerEvents: 'auto', cursor: 'text' }}
               />
             </div>
           )}
